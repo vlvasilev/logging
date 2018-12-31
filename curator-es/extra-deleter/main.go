@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -406,6 +407,7 @@ func main() {
 	flag.Parse()
 	var err error
 	if *esAPI == "" {
+		*config = filepath.Clean(*config)
 		*esAPI, err = getEsApiFromConf(*config)
 		if err != nil {
 			log.Println(err.Error())
