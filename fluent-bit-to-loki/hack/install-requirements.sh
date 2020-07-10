@@ -25,8 +25,8 @@ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/insta
 curl -s "https://raw.githubusercontent.com/helm/helm/v2.16.9/scripts/get" | bash -s -- --version 'v2.13.1'
 
 curl -OL https://github.com/progrium/ginkgo/tarball/master
-mkdir ./ginkgo
-tar -xzf master -C ./ginkgo
+mkdir -p ./ginkgo
+tar -xzf master -C ./ginkgo --strip-components=1
 python ./ginkgo/setup.py install
 rm -fr ./ginkgo master
 
