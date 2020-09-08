@@ -45,6 +45,8 @@ const (
 	JSONFormat Format = iota
 	// KvPairFormat represents key-value format for log line
 	KvPairFormat
+	// The default regular expresion for extracting the kubernetes metadata from tag
+	DefaultKubernetesMetadataTagExpression = "\\.(.+?)_(.+?)_(.+)-.*\\.log"
 )
 
 //Config holds all of the needet properties of the loki output plugin
@@ -63,6 +65,7 @@ type Config struct {
 	DynamicHostPrefix    string
 	DynamicHostSuffix    string
 	DynamicHostRegex     string
+	KubernetesMetadata   KubernetesMetadataExtraction
 }
 
 // BufferConfig contains the buffer settings
@@ -78,6 +81,15 @@ type DqueConfig struct {
 	QueueSegmentSize int
 	QueueSync        bool
 	QueueName        string
+}
+
+// KubernetesMetadataExtraction holds the setting for retrieving the meta data from a tag
+type KubernetesMetadataExtraction struct {
+	ExtractKubernetesMetadataFromTag bool
+	DropLogEntryWithoutK8sMetadata   bool
+	TagKey                           string
+	TagPrefix                        string
+	TagExpression                    string
 }
 
 var DefaultBufferConfig = BufferConfig{
@@ -308,6 +320,38 @@ func ParseConfig(cfg Getter) (*Config, error) {
 		res.ReplaceOutOfOrderTS, err = strconv.ParseBool(replaceOutOfOrderTS)
 		if err != nil {
 			return nil, fmt.Errorf("invalid string ReplaceOutOfOrderTS: %v", err)
+		}
+	}
+
+	extractKubernetesMetadataFromTag := cfg.Get("ExtractKubernetesMetadataFromTag")
+	if extractKubernetesMetadataFromTag != "" {
+		res.KubernetesMetadata.ExtractKubernetesMetadataFromTag, err = strconv.ParseBool(extractKubernetesMetadataFromTag)
+		if err != nil {
+			return nil, fmt.Errorf("invalid value for ExtractKubernetesMetadataFromTag, error: %v", err)
+		}
+	}
+
+	tagKey := cfg.Get("TagKey")
+	if tagKey != "" {
+		res.KubernetesMetadata.TagKey = tagKey
+	} else {
+		res.KubernetesMetadata.TagKey = "tag"
+	}
+
+	res.KubernetesMetadata.TagPrefix = cfg.Get("TagPrefix")
+
+	tagExpression := cfg.Get("TagExpression")
+	if tagExpression != "" {
+		res.KubernetesMetadata.TagExpression = tagExpression
+	} else {
+		res.KubernetesMetadata.TagExpression = "\\.(.+?)_(.+?)_(.+)-.*\\.log"
+	}
+
+	dropLogEntryWithoutK8sMetadata := cfg.Get("DropLogEntryWithoutK8sMetadata")
+	if dropLogEntryWithoutK8sMetadata != "" {
+		res.KubernetesMetadata.DropLogEntryWithoutK8sMetadata, err = strconv.ParseBool(dropLogEntryWithoutK8sMetadata)
+		if err != nil {
+			return nil, fmt.Errorf("invalid string DropLogEntryWithoutK8sMetadata: %v", err)
 		}
 	}
 

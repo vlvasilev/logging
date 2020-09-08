@@ -36,6 +36,11 @@ This plugin is implemented with [Fluent Bit's Go plugin](https://github.com/flue
 | QueSegmentSize | The number of entries stored into the buffer. | 500
 | QueueName | The name of the file where the log entries will be stored | `dque`
 | ReplaceOutOfOrderTS | If set to true and records with old timestamp appears it rewrites the timestamp with the one of the last entry. | `false`
+| ExtractKubernetesMetadataFromTag | If set the plugin will try to extract the namespace, pod_name and container_id from a tag in the log entry | `false`
+| TagKey | This is the key in the log entry which holds the tag.The tag must not be nested | "tag"
+| TagPrefix | This is the prefix of the tag. In the prefix no metadata will be searched. The prefix must not contain group expression(`()`). | none
+| TagExpression | This is the regex expression which will be used for matching the metadata. It must contains only 3 group expressions (`()`) which will be `pod name`, `namespace` and the `container id` | "\\.(.*)_(.*)_(.*)-.*\\.log"
+| DropLogEntryWithoutK8sMetadata | If set the log entries without kubernetes metadata will be dropped | `false` 
 
 
 ### Labels

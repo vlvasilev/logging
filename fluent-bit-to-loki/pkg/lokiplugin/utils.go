@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -82,6 +83,26 @@ func autoLabels(records map[string]interface{}, kuberneteslbs model.LabelSet) er
 		default:
 			kuberneteslbs[model.LabelName(k)] = model.LabelValue(fmt.Sprintf("%v", v))
 		}
+	}
+
+	return nil
+}
+
+func extractKubernetesMetadataFromTag(records map[string]interface{}, tagKey string, re *regexp.Regexp) error {
+	tag, ok := records[tagKey].(string)
+	if !ok {
+		return errors.New("the tag entry is missing, no kubernetes metadata will be added")
+	}
+
+	kubernetesMetaData := re.FindStringSubmatch(tag)
+	if len(kubernetesMetaData) != 4 {
+		return fmt.Errorf("invalid format for tag %v. The tag should be in format: %s", tag, re.String())
+	}
+
+	records["kubernetes"] = map[string]interface{}{
+		"pod_name":       kubernetesMetaData[1],
+		"namespace":      kubernetesMetaData[2],
+		"container_name": kubernetesMetaData[3],
 	}
 
 	return nil

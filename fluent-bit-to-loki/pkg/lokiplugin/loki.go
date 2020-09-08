@@ -30,16 +30,18 @@ type Loki interface {
 }
 
 type loki struct {
-	cfg               *config.Config
-	defaultClient     lokiclient.Client
-	dynamicHostRegexp *regexp.Regexp
-	controller        controller.Controller
-	logger            log.Logger
+	cfg                             *config.Config
+	defaultClient                   lokiclient.Client
+	dynamicHostRegexp               *regexp.Regexp
+	extractKubernetesMetadataRegexp *regexp.Regexp
+	controller                      controller.Controller
+	logger                          log.Logger
 }
 
 // NewPlugin returns Loki output plugin
 func NewPlugin(informer cache.SharedIndexInformer, cfg *config.Config, logger log.Logger) (Loki, error) {
 	var dynamicHostRegexp *regexp.Regexp
+	var extractKubernetesMetadataRegexp *regexp.Regexp
 	var ctl controller.Controller
 
 	defaultLokiClient, err := bufferedclient.NewClient(cfg, logger)
@@ -55,12 +57,17 @@ func NewPlugin(informer cache.SharedIndexInformer, cfg *config.Config, logger lo
 		}
 	}
 
+	if cfg.KubernetesMetadata.ExtractKubernetesMetadataFromTag {
+		extractKubernetesMetadataRegexp = regexp.MustCompile(cfg.KubernetesMetadata.TagPrefix + cfg.KubernetesMetadata.TagExpression)
+	}
+
 	return &loki{
-		cfg:               cfg,
-		defaultClient:     defaultLokiClient,
-		dynamicHostRegexp: dynamicHostRegexp,
-		controller:        ctl,
-		logger:            logger,
+		cfg:                             cfg,
+		defaultClient:                   defaultLokiClient,
+		dynamicHostRegexp:               dynamicHostRegexp,
+		extractKubernetesMetadataRegexp: extractKubernetesMetadataRegexp,
+		controller:                      ctl,
+		logger:                          logger,
 	}, nil
 }
 
@@ -70,6 +77,21 @@ func (l *loki) SendRecord(r map[interface{}]interface{}, ts time.Time) error {
 	records := toStringMap(r)
 	level.Debug(l.logger).Log("msg", "processing records", "records", fmt.Sprintf("%+v", records))
 	lbs := model.LabelSet{}
+
+	if l.cfg.KubernetesMetadata.ExtractKubernetesMetadataFromTag {
+		if _, ok := records["kubernetes"]; !ok {
+			level.Warn(l.logger).Log("msg", "kubernetes metadata is missing. Will try to extract it from the tag", "records", fmt.Sprintf("%+v", records))
+			err := extractKubernetesMetadataFromTag(records, l.cfg.KubernetesMetadata.TagKey, l.extractKubernetesMetadataRegexp)
+			if err != nil {
+				level.Warn(l.logger).Log("msg", err.Error(), "records", fmt.Sprintf("%+v", records))
+				if l.cfg.KubernetesMetadata.DropLogEntryWithoutK8sMetadata {
+					level.Warn(l.logger).Log("msg", "kubernetes metadata is missing and the log entry will dropt", "records", fmt.Sprintf("%+v", records))
+					return nil
+				}
+			}
+		}
+	}
+
 	if l.cfg.AutoKubernetesLabels {
 		err := autoLabels(records, lbs)
 		if err != nil {
