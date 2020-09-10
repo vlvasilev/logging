@@ -71,7 +71,7 @@ type autoKubernetesLabelsArgs struct {
 	want    model.LabelSet
 	err     error
 }
-type extractKubernetesMetadataFromTagArgs struct {
+type fallbackToTagWhenMetadataIsMissing struct {
 	records   map[string]interface{}
 	tagKey    string
 	tagPrefix string
@@ -470,8 +470,8 @@ var _ = Describe("Loki plugin utils", func() {
 		),
 	)
 
-	DescribeTable("#extractKubernetesMetadataFromTag",
-		func(args extractKubernetesMetadataFromTagArgs) {
+	DescribeTable("#fallbackToTagWhenMetadataIsMissing",
+		func(args fallbackToTagWhenMetadataIsMissing) {
 			re := regexp.MustCompile(args.tagPrefix + args.tagRegexp)
 			err := extractKubernetesMetadataFromTag(args.records, args.tagKey, re)
 			if args.err != nil {
@@ -482,7 +482,7 @@ var _ = Describe("Loki plugin utils", func() {
 			Expect(args.records).To(Equal(args.want))
 		},
 		Entry("records with correct tag",
-			extractKubernetesMetadataFromTagArgs{
+			fallbackToTagWhenMetadataIsMissing{
 				records: map[string]interface{}{
 					"tag": "kubernetes.var.log.containers.cluster-autoscaler-65d4ccbb7d-w5kd2_shoot--i355448--local-shoot_cluster-autoscaler-a8bba03512b5dd378c620ab3707aec013f83bdb9abae08d347e1644b064ed35f.log",
 				},
@@ -501,7 +501,7 @@ var _ = Describe("Loki plugin utils", func() {
 			},
 		),
 		Entry("records with incorrect tag",
-			extractKubernetesMetadataFromTagArgs{
+			fallbackToTagWhenMetadataIsMissing{
 				records: map[string]interface{}{
 					"tag": "kubernetes.var.log.containers.cluster-autoscaler-65d4ccbb7d-w5kd2_shoot--i355448--local-shoot-cluster-autoscaler-a8bba03512b5dd378c620ab3707aec013f83bdb9abae08d347e1644b064ed35f.log",
 				},
@@ -512,7 +512,7 @@ var _ = Describe("Loki plugin utils", func() {
 			},
 		),
 		Entry("records with missing tag",
-			extractKubernetesMetadataFromTagArgs{
+			fallbackToTagWhenMetadataIsMissing{
 				records: map[string]interface{}{
 					"missing_tag": "kubernetes.var.log.containers.cluster-autoscaler-65d4ccbb7d-w5kd2_shoot--i355448--local-shoot-cluster-autoscaler-a8bba03512b5dd378c620ab3707aec013f83bdb9abae08d347e1644b064ed35f.log",
 				},

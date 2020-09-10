@@ -107,7 +107,7 @@ func FLBPluginInit(ctx unsafe.Pointer) int {
 	level.Info(paramLogger).Log("QueueSegmentSize", fmt.Sprintf("%+v", conf.BufferConfig.DqueConfig.QueueSegmentSize))
 	level.Info(paramLogger).Log("QueueSync", fmt.Sprintf("%+v", conf.BufferConfig.DqueConfig.QueueSync))
 	level.Info(paramLogger).Log("QueueName", fmt.Sprintf("%+v", conf.BufferConfig.DqueConfig.QueueName))
-	level.Info(paramLogger).Log("ExtractKubernetesMetadataFromTag", fmt.Sprintf("%+v", conf.KubernetesMetadata.ExtractKubernetesMetadataFromTag))
+	level.Info(paramLogger).Log("FallbackToTagWhenMetadataIsMissing", fmt.Sprintf("%+v", conf.KubernetesMetadata.FallbackToTagWhenMetadataIsMissing))
 	level.Info(paramLogger).Log("TagKey", fmt.Sprintf("%+v", conf.KubernetesMetadata.TagKey))
 	level.Info(paramLogger).Log("TagPrefix", fmt.Sprintf("%+v", conf.KubernetesMetadata.TagPrefix))
 	level.Info(paramLogger).Log("TagExpression", fmt.Sprintf("%+v", conf.KubernetesMetadata.TagExpression))

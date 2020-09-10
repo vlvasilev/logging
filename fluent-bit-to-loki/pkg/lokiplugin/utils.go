@@ -91,7 +91,7 @@ func autoLabels(records map[string]interface{}, kuberneteslbs model.LabelSet) er
 func extractKubernetesMetadataFromTag(records map[string]interface{}, tagKey string, re *regexp.Regexp) error {
 	tag, ok := records[tagKey].(string)
 	if !ok {
-		return errors.New("the tag entry is missing, no kubernetes metadata will be added")
+		return errors.New("the tag entry is missing")
 	}
 
 	kubernetesMetaData := re.FindStringSubmatch(tag)

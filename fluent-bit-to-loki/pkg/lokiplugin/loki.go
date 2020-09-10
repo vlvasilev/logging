@@ -57,7 +57,7 @@ func NewPlugin(informer cache.SharedIndexInformer, cfg *config.Config, logger lo
 		}
 	}
 
-	if cfg.KubernetesMetadata.ExtractKubernetesMetadataFromTag {
+	if cfg.KubernetesMetadata.FallbackToTagWhenMetadataIsMissing {
 		extractKubernetesMetadataRegexp = regexp.MustCompile(cfg.KubernetesMetadata.TagPrefix + cfg.KubernetesMetadata.TagExpression)
 	}
 
@@ -78,14 +78,15 @@ func (l *loki) SendRecord(r map[interface{}]interface{}, ts time.Time) error {
 	level.Debug(l.logger).Log("msg", "processing records", "records", fmt.Sprintf("%+v", records))
 	lbs := model.LabelSet{}
 
-	if l.cfg.KubernetesMetadata.ExtractKubernetesMetadataFromTag {
-		if _, ok := records["kubernetes"]; !ok {
+	// Check if metadata is missing
+	if _, ok := records["kubernetes"]; !ok {
+		if l.cfg.KubernetesMetadata.FallbackToTagWhenMetadataIsMissing {
 			level.Warn(l.logger).Log("msg", "kubernetes metadata is missing. Will try to extract it from the tag", "records", fmt.Sprintf("%+v", records))
 			err := extractKubernetesMetadataFromTag(records, l.cfg.KubernetesMetadata.TagKey, l.extractKubernetesMetadataRegexp)
 			if err != nil {
-				level.Warn(l.logger).Log("msg", err.Error(), "records", fmt.Sprintf("%+v", records))
+				level.Error(l.logger).Log("msg", err.Error(), "records", fmt.Sprintf("%+v", records))
 				if l.cfg.KubernetesMetadata.DropLogEntryWithoutK8sMetadata {
-					level.Warn(l.logger).Log("msg", "kubernetes metadata is missing and the log entry will dropt", "records", fmt.Sprintf("%+v", records))
+					level.Warn(l.logger).Log("msg", "kubernetes metadata is missing and the log entry will be dropped", "records", fmt.Sprintf("%+v", records))
 					return nil
 				}
 			}
